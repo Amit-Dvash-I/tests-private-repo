@@ -1,0 +1,74 @@
+# GitHub Actions Workflow for CI/CD
+# This workflow demonstrates common CI/CD practices with Python projects
+
+name: CI
+
+# Trigger the workflow on push and pull_request events
+# This ensures code is tested both when pushing to branches and when PRs are opened
+on:
+  push:
+    branches: [ "**" ]  # Run on all branches
+  pull_request:
+    branches: [ "**" ]  # Run on PRs to all branches
+
+jobs:
+  test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    
+    # Strategy defines a matrix of different configurations to test
+    # This allows us to test against multiple Python versions
+    strategy:
+      # fail-fast: false means all matrix jobs run even if one fails
+      fail-fast: false
+      matrix:
+        # Test on Python 3.10 and 3.11
+        python-version: ["3.10", "3.11"]
+    
+    # Steps represent a sequence of tasks that will be executed
+    steps:
+    # Step 1: Check out the repository code
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    # Step 2: Set up Python with the specified version from the matrix
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        # Cache pip dependencies to speed up workflow runs
+        # The cache is invalidated when requirements.txt changes
+        cache: 'pip'
+        cache-dependency-path: requirements.txt
+    
+    # Step 3: Install Python dependencies
+    - name: Install dependencies
+      run: |
+        # Upgrade pip to the latest version
+        python -m pip install --upgrade pip
+        # Install project dependencies from requirements.txt
+        pip install -r requirements.txt
+    
+    # Step 4: Run tests with pytest
+    - name: Run tests with pytest
+      run: |
+        # Run pytest with coverage reporting
+        # -v: verbose output
+        # --cov=src: measure coverage for the src directory
+        # --cov-report=xml: generate XML coverage report for tools
+        # --cov-report=term: show coverage summary in terminal
+        pytest -v --cov=src --cov-report=xml --cov-report=term
+    
+    # Step 5: Upload coverage report as an artifact
+    # Artifacts are files that persist after the workflow completes
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        # Name the artifact with the Python version for clarity
+        name: coverage-report-${{ matrix.python-version }}
+        # Upload the XML coverage report
+        path: coverage.xml
+        # Keep the artifact for 30 days
+        retention-days: 30
+      # Only upload if tests completed (even if they failed)
+      if: always()
