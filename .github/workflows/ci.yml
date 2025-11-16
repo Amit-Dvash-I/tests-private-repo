@@ -16,6 +16,11 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     
+    # Explicitly set minimal permissions for security
+    # This follows the principle of least privilege
+    permissions:
+      contents: read  # Allow reading repository contents
+    
     # Strategy defines a matrix of different configurations to test
     # This allows us to test against multiple Python versions
     strategy:
